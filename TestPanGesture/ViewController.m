@@ -7,6 +7,7 @@
 //
 
 #import "ViewController.h"
+#import <POP.h>
 
 #define TEMPLATE_BETTY_X 20
 #define TEMPLATE_BETTY_Y (SCREEN_HEIGHT-2*TEMPLATE_BETTY_HEIGHT)
@@ -22,7 +23,7 @@
 
 
 @interface ViewController ()
-
+@property CGRect startBounds;
 @end
 
 @implementation ViewController
@@ -70,39 +71,106 @@
     }];
 }
 
--(void)handlePan:(UIPanGestureRecognizer *)recognizer {
+- (void)handlePanGesture:(UIPanGestureRecognizer *)panGestureRecognizer {
 
     /*CGPoint translation = [recognizer translationInView:self.view];
     recognizer.view.center = CGPointMake(recognizer.view.center.x + translation.x,
                                          recognizer.view.center.y + translation.y);
     [recognizer setTranslation:CGPointMake(0, 0) inView:self.view];*/
+
     
+    switch (panGestureRecognizer.state) {
     
+        case UIGestureRecognizerStateBegan:
+        {
+            NSLog(@"UIGestureRecognizerStateBegan");
+            
+//            [self pop_removeAnimationForKey:@"decelerate"];
+//            self.startBounds = self.bounds;
+        }
+        
+        case UIGestureRecognizerStateChanged:
+        {
+            NSLog(@"UIGestureRecognizerStateChanged");
+            
+            //Limits
+            CGPoint translation = [panGestureRecognizer translationInView:_scrollView];
+            NSLog(@"translation: %@",NSStringFromCGPoint(translation));
+            
+            //Limits
+            if(_scrollView.frame.origin.y+translation.y<_finalPoint.y )
+            {
+                _scrollView.frame = CGRectMake(_scrollView.frame.origin.x, _scrollView.frame.origin.y+translation.y, _scrollView.frame.size.width, _scrollView.frame.size.height-translation.y);
+                NSLog(@"scroll: %@",NSStringFromCGRect(_scrollView.frame));
+            }
+            
+            
+            
+
+            
+            
+            /*CGPoint translation = [panGestureRecognizer translationInView:self];
+            CGRect bounds = self.startBounds;
+            
+            CGFloat newBoundsOriginX = bounds.origin.x - translation.x;
+            CGFloat minBoundsOriginX = 0.0;
+            CGFloat maxBoundsOriginX = self.contentSize.width - bounds.size.width;
+            bounds.origin.x = fmax(minBoundsOriginX, fmin(newBoundsOriginX, maxBoundsOriginX));
+            
+            CGFloat newBoundsOriginY = bounds.origin.y - translation.y;
+            CGFloat minBoundsOriginY = 0.0;
+            CGFloat maxBoundsOriginY = self.contentSize.height - bounds.size.height;
+            bounds.origin.y = fmax(minBoundsOriginY, fmin(newBoundsOriginY, maxBoundsOriginY));
+            
+            self.bounds = bounds;*/
+        }
     
-    CGPoint translation = [recognizer translationInView:self.view];
-    recognizer.view.center = CGPointMake(recognizer.view.center.x + translation.x,
-                                         recognizer.view.center.y + translation.y);
-    [recognizer setTranslation:CGPointMake(0, 0) inView:self.view];
-    
-    if (recognizer.state == UIGestureRecognizerStateEnded) {
+        break;
+        case UIGestureRecognizerStateEnded:
+        {
+            NSLog(@"UIGestureRecognizerStateEnded");
+            
+            /*CGPoint velocity = [panGestureRecognizer velocityInView:self];
+            if (self.bounds.size.width >= self.contentSize.width) {
+                velocity.x = 0;
+            }
+            if (self.bounds.size.height >= self.contentSize.height) {
+                velocity.y = 0;
+            }
+            velocity.x = -velocity.x;
+            velocity.y = -velocity.y;
+            NSLog(@"velocity: %@", NSStringFromCGPoint(velocity));
+            
+            POPDecayAnimation *decayAnimation = [POPDecayAnimation animation];
+            
+            
+            POPAnimatableProperty *prop = [POPAnimatableProperty propertyWithName:@"com.rounak.bounds.origin" initializer:^(POPMutableAnimatableProperty *prop) {
+                // read value
+                prop.readBlock = ^(id obj, CGFloat values[]) {
+                    NSLog(@"readBlock values: %f", values[0]);
+                    values[0] = [obj bounds].origin.x;
+                    values[1] = [obj bounds].origin.y;
+                };
+                // write value
+                prop.writeBlock = ^(id obj, const CGFloat values[]) {
+                    CGRect tempBounds = [obj bounds];
+                    NSLog(@"writeBlock values: %f", values[0]);
+                    tempBounds.origin.x = values[0];
+                    tempBounds.origin.y = values[1];
+                    [obj setBounds:tempBounds];
+                };
+                // dynamics threshold
+                prop.threshold = 0.01;
+            }];
+            decayAnimation.property = prop;
+            decayAnimation.velocity = [NSValue valueWithCGPoint:velocity];
+            [self pop_addAnimation:decayAnimation forKey:@"decelerate"];*/
+        }
+        break;
         
-        CGPoint velocity = [recognizer velocityInView:self.view];
-        CGFloat magnitude = sqrtf(/*(velocity.x * velocity.x) +*/ (velocity.y * velocity.y));
-        CGFloat slideMult = magnitude / 200;
-        NSLog(@"magnitude: %f, slideMult: %f", magnitude, slideMult);
-        
-        float slideFactor = 0.1 * slideMult; // Increase for more of a slide
-        CGPoint finalPoint = CGPointMake(recognizer.view.center.x + (velocity.x * slideFactor),
-                                         recognizer.view.center.y + (velocity.y * slideFactor));
-        finalPoint.x = MIN(MAX(finalPoint.x, 0), self.view.bounds.size.width);
-        finalPoint.y = MIN(MAX(finalPoint.y, 0), self.view.bounds.size.height);
-        
-        [UIView animateWithDuration:slideFactor*2 delay:0 options:UIViewAnimationOptionCurveEaseOut animations:^{
-            recognizer.view.center = finalPoint;
-        } completion:nil];
-        
+        default:
+        break;
     }
-    
 }
 
 #pragma mark - View lifecycle
@@ -114,7 +182,7 @@
     _pageSize = CGSizeMake(SCREEN_WIDTH-2*TEMPLATE_BETTY_X, TEMPLATE_BETTY_PAGE_HIEGHT);
     
     _initialPoint = CGPointMake(TEMPLATE_BETTY_X, TEMPLATE_BETTY_Y);
-    _finalPoint = CGPointMake(TEMPLATE_BETTY_X, TEMPLATE_BETTY_Y-_pageSize.height);
+    _finalPoint = CGPointMake(TEMPLATE_BETTY_X, 50);
     
     //Scroll
     _scrollView = [[UIScrollView alloc] initWithFrame:CGRectZero];
@@ -129,7 +197,7 @@
     [self.view addSubview:_bettyButton];
 
     //Add pan gesture
-    UIPanGestureRecognizer *gestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+    UIPanGestureRecognizer *gestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanGesture:)];
     [gestureRecognizer setMinimumNumberOfTouches:1];
     [gestureRecognizer setMaximumNumberOfTouches:1];
     [_scrollView addGestureRecognizer:gestureRecognizer];
