@@ -198,6 +198,9 @@ CGFloat finalY;
     NSLog(@"translatedPoint: %@",NSStringFromCGPoint(translatedPoint));
     [[sender view] setCenter:translatedPoint];
     
+    //Limits
+    
+    
     if ([(UIPanGestureRecognizer*)sender state] == UIGestureRecognizerStateEnded) {
         //CGFloat velocityX = (0.2*[(UIPanGestureRecognizer*)sender velocityInView:self.view].x);
         CGFloat velocityY = (0.2*[(UIPanGestureRecognizer*)sender velocityInView:self.view].y);
