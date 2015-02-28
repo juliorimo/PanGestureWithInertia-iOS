@@ -16,7 +16,7 @@
 
 #define TEMPLATE_BETTY_BUTTON_WIDTH 50
 
-#define TEMPLATE_BETTY_PAGE_HIEGHT (SCREEN_HEIGHT*0.7)
+#define TEMPLATE_BETTY_PAGE_HIEGHT (SCREEN_HEIGHT*0.8)
 
 #define SCREEN_WIDTH [[UIScreen mainScreen] bounds].size.width
 #define SCREEN_HEIGHT [[UIScreen mainScreen] bounds].size.height
@@ -104,11 +104,6 @@
                 NSLog(@"scroll: %@",NSStringFromCGRect(_scrollView.frame));
             }
             
-            
-            
-
-            
-            
             /*CGPoint translation = [panGestureRecognizer translationInView:self];
             CGRect bounds = self.startBounds;
             
@@ -173,6 +168,83 @@
     }
 }
 
+CGFloat firstX;
+CGFloat firstY;
+CGFloat finalX;
+CGFloat finalY;
+
+-(void)animationDidFinish:(id)sender{
+
+    [self pushBetty:nil];
+}
+
+-(void)move:(id)sender {
+    
+    //Just scroll
+    if([(UIPanGestureRecognizer*)sender view]!=_scrollView)return;
+    
+//    [self.view bringSubviewToFront:[(UIPanGestureRecognizer*)sender view]];
+    
+    //Movement point
+    CGPoint translatedPoint = [(UIPanGestureRecognizer*)sender translationInView:self.view];
+    
+    if ([(UIPanGestureRecognizer*)sender state] == UIGestureRecognizerStateBegan) {
+        firstX = [[sender view] center].x;
+        firstY = [[sender view] center].y;
+    }
+    
+    //translatedPoint = CGPointMake(firstX+translatedPoint.x, firstY);
+    translatedPoint = CGPointMake(firstX, +translatedPoint.y+firstY);
+    NSLog(@"translatedPoint: %@",NSStringFromCGPoint(translatedPoint));
+    [[sender view] setCenter:translatedPoint];
+    
+    if ([(UIPanGestureRecognizer*)sender state] == UIGestureRecognizerStateEnded) {
+        //CGFloat velocityX = (0.2*[(UIPanGestureRecognizer*)sender velocityInView:self.view].x);
+        CGFloat velocityY = (0.2*[(UIPanGestureRecognizer*)sender velocityInView:self.view].y);
+        
+        CGFloat finalX = firstX;//translatedPoint.x + velocityX;
+        CGFloat finalY = translatedPoint.y + velocityY;//firstY;// translatedPoint.y + (.35*[(UIPanGestureRecognizer*)sender velocityInView:self.view].y);
+        
+        if (UIDeviceOrientationIsPortrait([[UIDevice currentDevice] orientation])) {
+            if (finalX < 0) {
+                finalX = 0;
+            } else if (finalX > 768) {
+                finalX = 768;
+            }
+            
+            if (finalY < 0) {
+                //finalY = 0;
+            } else if (finalY > 1024) {
+                //finalY = 1024;
+            }
+        } else {
+            if (finalX < 0) {
+                finalX = 0;
+            } else if (finalX > 1024) {
+                finalX = 768;
+            }
+            
+            if (finalY < 0) {
+                //finalY = 0;
+            } else if (finalY > 768) {
+                //finalY = 1024;
+            }
+        }
+        
+        CGFloat animationDuration = (ABS(velocityY)*.0002)+.2;
+        
+        NSLog(@"the duration is: %f", animationDuration);
+        
+        [UIView beginAnimations:nil context:NULL];
+        [UIView setAnimationDuration:animationDuration];
+        [UIView setAnimationCurve:UIViewAnimationCurveEaseOut];
+        [UIView setAnimationDelegate:self];
+        [UIView setAnimationDidStopSelector:@selector(animationDidFinish:)];
+        [[sender view] setCenter:CGPointMake(finalX, finalY)];
+        [UIView commitAnimations];
+    }
+}
+
 #pragma mark - View lifecycle
 
 - (void)viewDidLoad {
@@ -182,7 +254,7 @@
     _pageSize = CGSizeMake(SCREEN_WIDTH-2*TEMPLATE_BETTY_X, TEMPLATE_BETTY_PAGE_HIEGHT);
     
     _initialPoint = CGPointMake(TEMPLATE_BETTY_X, TEMPLATE_BETTY_Y);
-    _finalPoint = CGPointMake(TEMPLATE_BETTY_X, 50);
+    _finalPoint = CGPointMake(TEMPLATE_BETTY_X, _initialPoint.y-_pageSize.height);
     
     //Scroll
     _scrollView = [[UIScrollView alloc] initWithFrame:CGRectZero];
@@ -197,7 +269,7 @@
     [self.view addSubview:_bettyButton];
 
     //Add pan gesture
-    UIPanGestureRecognizer *gestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanGesture:)];
+    UIPanGestureRecognizer *gestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(move:)];
     [gestureRecognizer setMinimumNumberOfTouches:1];
     [gestureRecognizer setMaximumNumberOfTouches:1];
     [_scrollView addGestureRecognizer:gestureRecognizer];
