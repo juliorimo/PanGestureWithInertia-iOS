@@ -28,16 +28,12 @@
 
 @implementation ViewController
 {
-    //UIScrollView
-    UIScrollView *_scrollView;
-    
-    //Button
-    UIButton *_bettyButton;
-    
     //Final position
     CGPoint _finalPoint;
-    CGPoint _initialPoint;
-    CGSize _pageSize;
+    
+    //Coordinates for animation
+    CGFloat _firstX;
+    CGFloat _firstY;
 }
 
 #pragma mark - Actions
@@ -168,10 +164,6 @@
     }
 }
 
-CGFloat firstX;
-CGFloat firstY;
-CGFloat finalX;
-CGFloat finalY;
 
 -(void)animationDidFinish:(id)sender{
 
@@ -180,34 +172,75 @@ CGFloat finalY;
 
 -(void)move:(id)sender {
     
-    //Just scroll
+    //Pan gesture only over scroll
     if([(UIPanGestureRecognizer*)sender view]!=_scrollView)return;
     
-//    [self.view bringSubviewToFront:[(UIPanGestureRecognizer*)sender view]];
+    //Start
+    if ([(UIPanGestureRecognizer*)sender state] == UIGestureRecognizerStateBegan) {
+        
+        NSLog(@"--- Start ---");
+        
+        _firstX = [[sender view] center].x;
+        _firstY = [[sender view] center].y;
+    }
     
     //Movement point
     CGPoint translatedPoint = [(UIPanGestureRecognizer*)sender translationInView:self.view];
-    
-    if ([(UIPanGestureRecognizer*)sender state] == UIGestureRecognizerStateBegan) {
-        firstX = [[sender view] center].x;
-        firstY = [[sender view] center].y;
+
+    //Orientation
+    if(_bettyOrientation==WRTemplateBettyOrientationVertical){
+
+        //Move Y
+        translatedPoint = CGPointMake(_firstX, +translatedPoint.y+_firstY);
+        
+    }else if(_bettyOrientation==WRTemplateBettyOrientationHorizonal){
+        
+        //Move X
+        translatedPoint = CGPointMake(_firstX+translatedPoint.x, _firstY);
     }
     
-    //translatedPoint = CGPointMake(firstX+translatedPoint.x, firstY);
-    translatedPoint = CGPointMake(firstX, +translatedPoint.y+firstY);
-    NSLog(@"translatedPoint: %@",NSStringFromCGPoint(translatedPoint));
-    [[sender view] setCenter:translatedPoint];
+    //Movement
+    CGFloat x = translatedPoint.x - [sender view].bounds.size.width / 2;
+    CGFloat y = translatedPoint.y - [sender view].bounds.size.height / 2;
     
-    //Limits
+    CGFloat width = [sender view].bounds.size.width;
+    CGFloat height = _initialPoint.y-y+_bettyButton.frame.size.height;//  [sender view].bounds.size.height;
     
+    NSLog(@"translatedPoint: %@",NSStringFromCGPoint(CGPointMake(x, y)));
+    [[sender view] setFrame:CGRectMake(x, y, width, height)];
     
+    //[[sender view] setCenter:translatedPoint];
+    
+    //End animation
     if ([(UIPanGestureRecognizer*)sender state] == UIGestureRecognizerStateEnded) {
-        //CGFloat velocityX = (0.2*[(UIPanGestureRecognizer*)sender velocityInView:self.view].x);
-        CGFloat velocityY = (0.2*[(UIPanGestureRecognizer*)sender velocityInView:self.view].y);
         
-        CGFloat finalX = firstX;//translatedPoint.x + velocityX;
-        CGFloat finalY = translatedPoint.y + velocityY;//firstY;// translatedPoint.y + (.35*[(UIPanGestureRecognizer*)sender velocityInView:self.view].y);
+        NSLog(@"--- End ---");
         
+        //Vars
+        CGFloat velocityX,velocityY;
+        CGFloat finalX=0,finalY=0;
+        
+        //Orientation
+        if(_bettyOrientation==WRTemplateBettyOrientationVertical){
+        
+            //Velocity
+            velocityY = (0.2*[(UIPanGestureRecognizer*)sender velocityInView:self.view].y);
+            
+            //Final position
+            finalX = _firstX;
+            finalY = translatedPoint.y + velocityY;
+            
+        }else if(_bettyOrientation==WRTemplateBettyOrientationHorizonal){
+        
+            //Velocity
+            velocityX = (0.2*[(UIPanGestureRecognizer*)sender velocityInView:self.view].x);
+            
+            //Final point
+            finalX = translatedPoint.x + velocityX;
+            finalY = _firstY; // translatedPoint.y + (.35*[(UIPanGestureRecognizer*)sender velocityInView:self.view].y);
+        }
+        
+        //Limits
         if (UIDeviceOrientationIsPortrait([[UIDevice currentDevice] orientation])) {
             if (finalX < 0) {
                 finalX = 0;
@@ -228,9 +261,9 @@ CGFloat finalY;
             }
             
             if (finalY < 0) {
-                //finalY = 0;
+                //_finalY = 0;
             } else if (finalY > 768) {
-                //finalY = 1024;
+                //_finalY = 1024;
             }
         }
         
@@ -242,8 +275,8 @@ CGFloat finalY;
         [UIView setAnimationDuration:animationDuration];
         [UIView setAnimationCurve:UIViewAnimationCurveEaseOut];
         [UIView setAnimationDelegate:self];
-        [UIView setAnimationDidStopSelector:@selector(animationDidFinish:)];
-        [[sender view] setCenter:CGPointMake(finalX, finalY)];
+        //[UIView setAnimationDidStopSelector:@selector(animationDidFinish:)];
+        //[[sender view] setCenter:CGPointMake(finalX, finalY)];
         [UIView commitAnimations];
     }
 }
@@ -254,8 +287,13 @@ CGFloat finalY;
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
     
+    //Horientation
+    _bettyOrientation=WRTemplateBettyOrientationVertical;
+    
+    //Page size
     _pageSize = CGSizeMake(SCREEN_WIDTH-2*TEMPLATE_BETTY_X, TEMPLATE_BETTY_PAGE_HIEGHT);
     
+    //Init and final position
     _initialPoint = CGPointMake(TEMPLATE_BETTY_X, TEMPLATE_BETTY_Y);
     _finalPoint = CGPointMake(TEMPLATE_BETTY_X, _initialPoint.y-_pageSize.height);
     
@@ -266,6 +304,7 @@ CGFloat finalY;
     _scrollView.contentSize = _scrollView.frame.size;
     [self.view addSubview:_scrollView];
     
+    //Betty button
     _bettyButton = [[UIButton alloc] initWithFrame:CGRectMake(TEMPLATE_BETTY_X, TEMPLATE_BETTY_Y, TEMPLATE_BETTY_BUTTON_WIDTH, TEMPLATE_BETTY_HEIGHT)];
     _bettyButton.backgroundColor = [UIColor grayColor];
     [_bettyButton addTarget:self action:@selector(pushBetty:) forControlEvents:UIControlEventTouchUpInside];
