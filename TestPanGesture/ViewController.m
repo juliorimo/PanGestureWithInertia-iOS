@@ -170,6 +170,19 @@
         }
         
         //Limits
+        if(finalX<0){
+            finalX=0;
+        }else if(finalX>SCREEN_WIDTH){
+            finalX=SCREEN_WIDTH;
+        }
+            
+        if(finalY<0){
+            finalY=0;
+        }else if(finalY>SCREEN_HEIGHT){
+            finalY=SCREEN_HEIGHT;
+        }
+        
+        /*
         if (UIDeviceOrientationIsPortrait([[UIDevice currentDevice] orientation])) {
             if (finalX < 0) {
                 finalX = 0;
@@ -194,7 +207,7 @@
             } else if (finalY > 768) {
                 //_finalY = 1024;
             }
-        }
+        }*/
         
         CGFloat animationDuration = (ABS(velocityY)*.0002)+.2;
         
