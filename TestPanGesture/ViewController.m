@@ -21,6 +21,12 @@
 #define SCREEN_WIDTH [[UIScreen mainScreen] bounds].size.width
 #define SCREEN_HEIGHT [[UIScreen mainScreen] bounds].size.height
 
+typedef NS_ENUM(NSUInteger, WRTemplateBettyDirection) {
+    WRTemplateBettyDirectionUp=0,
+    WRTemplateBettyDirectionDown,
+    WRTemplateBettyDirectionLeft,
+    WRTemplateBettyDirectionRight
+};
 
 @interface ViewController ()
 @property CGRect startBounds;
@@ -73,6 +79,37 @@
 
     [self pushBetty:nil];
 }
+
+-(void)animationDidFinishWithDirection:(WRTemplateBettyDirection)direction andTime:(CGFloat)time{
+    
+    CGPoint destiny;
+    NSInteger size;
+    
+    if(direction==WRTemplateBettyDirectionUp){
+    
+        //Move up
+        destiny=_finalPoint;
+        size=_bettyButton.frame.size.height+_pageSize.height;
+        
+    }
+    else if(direction==WRTemplateBettyDirectionDown){
+        
+        //Move down
+        destiny=_initialPoint;
+        size=_bettyButton.frame.size.height;
+    }
+    
+    [UIView animateWithDuration:time animations:^{
+        
+        //Move up
+        _bettyButton.frame = CGRectMake(destiny.x, destiny.y, _bettyButton.frame.size.width, _bettyButton.frame.size.height);
+        
+        //Scroll
+        _scrollView.frame = CGRectMake(destiny.x, destiny.y, _scrollView.frame.size.width, size);
+        
+    }];
+}
+
 
 - (void)handlePanGesture:(UIPanGestureRecognizer *)panGestureRecognizer{
     
@@ -138,7 +175,6 @@
     NSLog(@"translatedPoint: %@",NSStringFromCGPoint(CGPointMake(x, y)));
     [[panGestureRecognizer view] setFrame:CGRectMake(x, y, width, height)];
     _bettyButton.frame = CGRectMake(x, y, _bettyButton.frame.size.width, _bettyButton.frame.size.height);
-    //[[panGestureRecognizer view] setCenter:translatedPoint];
     
     //End animation
     if ([panGestureRecognizer state] == UIGestureRecognizerStateEnded) {
@@ -146,7 +182,7 @@
         NSLog(@"--- End ---");
         
         //Vars
-        CGFloat velocityX,velocityY;
+        CGFloat velocityX=0,velocityY=0;
         CGFloat finalX=0,finalY=0;
         
         //Orientation
@@ -155,7 +191,7 @@
             //Velocity
             velocityY = (0.2*[panGestureRecognizer velocityInView:self.view].y);
             
-            //Final position
+            //Final position center
             finalX = _firstX;
             finalY = translatedPoint.y + velocityY;
             
@@ -182,44 +218,63 @@
             finalY=SCREEN_HEIGHT;
         }
         
-        /*
-        if (UIDeviceOrientationIsPortrait([[UIDevice currentDevice] orientation])) {
-            if (finalX < 0) {
-                finalX = 0;
-            } else if (finalX > 768) {
-                finalX = 768;
-            }
-            
-            if (finalY < 0) {
-                //finalY = 0;
-            } else if (finalY > 1024) {
-                //finalY = 1024;
-            }
-        } else {
-            if (finalX < 0) {
-                finalX = 0;
-            } else if (finalX > 1024) {
-                finalX = 768;
-            }
-            
-            if (finalY < 0) {
-                //_finalY = 0;
-            } else if (finalY > 768) {
-                //_finalY = 1024;
-            }
-        }*/
+        //Direction
+        WRTemplateBettyDirection direction = WRTemplateBettyDirectionUp;
+        if(_bettyOrientation==WRTemplateBettyOrientationVertical){
         
-        CGFloat animationDuration = (ABS(velocityY)*.0002)+.2;
+            NSInteger final = finalY - [panGestureRecognizer view].frame.size.height/2;
+            
+            if(final>y){
+                direction = WRTemplateBettyDirectionDown;
+            }else{
+                direction = WRTemplateBettyDirectionUp;
+            }
+            
+        }else if(_bettyOrientation==WRTemplateBettyOrientationHorizonal){
+        
+            //TODO
+            
+        }
+        
+        
+        //Animation for inertia
+        CGFloat animationDuration = 0;
+        if(_bettyOrientation==WRTemplateBettyOrientationVertical){
+            animationDuration = (ABS(velocityY)*.0002)+.2;
+        }else if(_bettyOrientation==WRTemplateBettyOrientationHorizonal){
+            animationDuration = (ABS(velocityX)*.0002)+.2;
+        }
         
         NSLog(@"the duration is: %f", animationDuration);
+        NSLog(@"final position: %@",NSStringFromCGPoint(CGPointMake(x, y)));
         
-        [UIView beginAnimations:nil context:NULL];
-        [UIView setAnimationDuration:animationDuration];
-        [UIView setAnimationCurve:UIViewAnimationCurveEaseOut];
-        [UIView setAnimationDelegate:self];
-        //[UIView setAnimationDidStopSelector:@selector(animationDidFinish:)];
-        //[[panGestureRecognizer view] setCenter:CGPointMake(finalX, finalY)];
-        [UIView commitAnimations];
+        //Animation
+        [self animationDidFinishWithDirection:direction andTime:animationDuration];
+        
+        //Animation
+        /*[UIView animateWithDuration:animationDuration animations:^{
+            
+            //Animate
+            //[[panGestureRecognizer view] setCenter:CGPointMake(finalX, finalY)];
+            //[[panGestureRecognizer view] setFrame:CGRectMake(x, y, width, height)];
+            
+            //_bettyButton.frame = CGRectMake(x, y, _bettyButton.frame.size.width, _bettyButton.frame.size.height);
+            
+        } completion:^(BOOL finished) {
+        
+            //Finish
+            [self animationDidFinish:nil];
+            
+        }];*/
+        
+        
+//        [UIView beginAnimations:nil context:NULL];
+//        [UIView setAnimationDuration:animationDuration];
+//        [UIView setAnimationCurve:UIViewAnimationCurveEaseOut];
+//        [UIView setAnimationDelegate:self];
+//        //[UIView setAnimationDidStopSelector:@selector(animationDidFinish:)];
+//        [[panGestureRecognizer view] setCenter:CGPointMake(finalX, finalY)];
+//        [UIView commitAnimations];
     }
 }
 
